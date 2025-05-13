@@ -14,6 +14,9 @@ class Profile(AbstractUser):
 
     Добавлено поле для фотографии профиля.
     """
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
     username = models.CharField(
         'Никнейм',
         max_length=MAX_LENGTH_USERNAME,
