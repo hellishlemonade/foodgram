@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from djoser.views import UserViewSet
+from rest_framework.response import Response
+from django.contrib.auth import get_user_model
 
-# Create your views here.
+
+User = get_user_model()
+
+
+class MyUserViewSet(UserViewSet):
+    lookup_field = 'id'
