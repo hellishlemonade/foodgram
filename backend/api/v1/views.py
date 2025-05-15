@@ -95,7 +95,12 @@ class MyUserViewSet(viewsets.ModelViewSet):
             subscriptions, many=True, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated],
+        url_path='subscribe'
+    )
     def get_subscriptions(self, request, id=None):
         user = request.user
         if request.method == 'POST':
@@ -107,11 +112,16 @@ class MyUserViewSet(viewsets.ModelViewSet):
                     {"detail": "Already subscribed"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            if user == self.get_object():
+                return Response(
+                    {"detail": "You cant subscribe to yourself"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             subscriber.subscriptions.add(self.get_object())
             subscriber = subscriber.subscriptions.get(id=self.get_object().id)
             serializer = MyUserSerializer(
                 subscriber, context={'request': request})
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             subscriber = get_object_or_404(Subscriber, user=user)
             if not subscriber.subscriptions.filter(
