@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
+from subs.models import Subscriber
+
 
 User = get_user_model()
 
@@ -23,7 +25,7 @@ class Base64ImageField(serializers.ImageField):
 
 
 class ImageSerializer(serializers.ModelSerializer):
-    avatar = Base64ImageField(required=False, allow_null=True)
+    avatar = Base64ImageField(required=True, allow_null=True)
 
     class Meta:
         model = User
@@ -31,7 +33,6 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class MyUserCreateSerializer(UserCreateSerializer):
-    avatar = Base64ImageField(required=False, allow_null=True)
 
     class Meta(UserCreateSerializer.Meta):
         model = User
@@ -42,8 +43,32 @@ class MyUserCreateSerializer(UserCreateSerializer):
             'first_name',
             'last_name',
             'password',
+        )
+
+
+class MyUserSerializer(serializers.ModelSerializer):
+    avatar = Base64ImageField(required=False, allow_null=True)
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta(UserCreateSerializer.Meta):
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
             'avatar',
         )
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            subscriber = Subscriber.objects.filter(user=request.user).first()
+            if subscriber:
+                return subscriber.subscriptions.filter(id=obj.id).exists()
+        return False
 
 
 class PasswordChangeSerializer(serializers.Serializer):
