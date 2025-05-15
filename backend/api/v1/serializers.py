@@ -8,6 +8,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from subs.models import Subscriber
+from recipes.models import Tag, Recipe, Ingredient, Unit
 
 
 User = get_user_model()
@@ -78,3 +79,10 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         validate_password(value)
         return value
+
+
+class TagSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Tag
+        fields = ('id', 'name', 'slug')
