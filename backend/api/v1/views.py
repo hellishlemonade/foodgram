@@ -1,10 +1,15 @@
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
 from rest_framework.settings import api_settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from django.urls import reverse
 
 from .serializers import (
     MyUserCreateSerializer,
@@ -12,10 +17,13 @@ from .serializers import (
     PasswordChangeSerializer,
     ImageSerializer,
     TagSerializer,
+    IngredientSerializer,
+    RecipeSerializer,
 )
-from .permissions import IsUserOrAdminOrReadOnly, MePermission
+from .permissions import IsUserOrAdminOrReadOnly, MePermission, IsUserOrReadOnly
+from .filters import AuthorTagFilter
 from subs.models import Subscriber
-from recipes.models import Tag
+from recipes.models import Tag, Ingredient, Recipe
 
 
 User = get_user_model()
@@ -78,7 +86,7 @@ class MyUserViewSet(viewsets.ModelViewSet):
         user = request.user
         if not user.check_password(request.data.get('current_password')):
             return Response(
-                {"detail": "Uncorrect password"},
+                {'detail': 'Uncorrect password'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         serializer = PasswordChangeSerializer(data=request.data)
@@ -111,12 +119,12 @@ class MyUserViewSet(viewsets.ModelViewSet):
             if subscriber.subscriptions.filter(
                     id=self.get_object().id).exists():
                 return Response(
-                    {"detail": "Already subscribed"},
+                    {'detail': 'Already subscribed'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             if user == self.get_object():
                 return Response(
-                    {"detail": "You cant subscribe to yourself"},
+                    {'detail': 'You cant subscribe to yourself'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             subscriber.subscriptions.add(self.get_object())
@@ -129,12 +137,12 @@ class MyUserViewSet(viewsets.ModelViewSet):
             if not subscriber.subscriptions.filter(
                     id=self.get_object().id).exists():
                 return Response(
-                    {"detail": "Not subscribed"},
+                    {'detail': 'Not subscribed'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             subscriber.subscriptions.remove(self.get_object())
             return Response(
-                {"detail": "Successfully unsubscribed"},
+                {'detail': 'Successfully unsubscribed'},
                 status=status.HTTP_204_NO_CONTENT
             )
 
@@ -146,3 +154,42 @@ class TagViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
     http_method_names = ('get')
     pagination_class = None
+
+
+class IngredientViewSet(viewsets.ModelViewSet):
+
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    lookup_field = 'id'
+    http_method_names = ('get')
+    pagination_class = None
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    lookup_field = 'id'
+    http_method_names = ('get', 'post', 'patch', 'del')
+    permission_classes = [IsUserOrReadOnly,]
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = AuthorTagFilter
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        recipe = serializer.save(author=request.user)
+        return Response(
+            self.get_serializer(recipe).data,
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(
+        detail=True,
+        http_method_names=('get'),
+        url_path='get-link'
+    )
+    def shortlink(self, request, id=None):
+        recipe = get_object_or_404(Recipe, id=self.get_object().id)
+        url = reverse('recipes-detail', kwargs={'id': recipe.id})
+        return Response({'short-link': url})
