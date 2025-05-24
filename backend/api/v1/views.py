@@ -163,6 +163,8 @@ class IngredientViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
     http_method_names = ('get')
     pagination_class = None
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('name',)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
