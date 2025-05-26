@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'api.apps.ApiConfig',
     'subs.apps.SubsConfig',
     'recipes.apps.RecipesConfig',
+    'favorites.apps.FavoritesConfig'
 ]
 
 MIDDLEWARE = [

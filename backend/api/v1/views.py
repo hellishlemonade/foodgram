@@ -19,11 +19,13 @@ from .serializers import (
     TagSerializer,
     IngredientSerializer,
     RecipeSerializer,
+    RecipeShortSerializer
 )
 from .permissions import IsUserOrAdminOrReadOnly, MePermission, IsUserOrReadOnly
 from .filters import AuthorTagFilter
 from subs.models import Subscriber
 from recipes.models import Tag, Ingredient, Recipe
+from favorites.models import FavoritesRecipes
 
 
 User = get_user_model()
@@ -172,7 +174,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     lookup_field = 'id'
-    http_method_names = ('get', 'post', 'patch', 'del')
+    http_method_names = ('get', 'post', 'patch', 'delete')
     permission_classes = [IsUserOrReadOnly,]
     filter_backends = (DjangoFilterBackend,)
     filterset_class = AuthorTagFilter
@@ -188,10 +190,36 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        http_method_names=('get'),
+        methods=('get',),
         url_path='get-link'
     )
     def shortlink(self, request, id=None):
         recipe = get_object_or_404(Recipe, id=self.get_object().id)
         url = reverse('recipes-detail', kwargs={'id': recipe.id})
         return Response({'short-link': url})
+
+    @action(
+        detail=True,
+        methods=('post', 'delete'),
+        permission_classes=[IsAuthenticated],
+        url_path='favorite'
+    )
+    def favorite(self, request, id=None):
+        recipe = get_object_or_404(Recipe, id=self.get_object().id)
+        serializer = RecipeShortSerializer(recipe)
+        user = request.user
+        if request.method == 'POST':
+            if FavoritesRecipes.objects.filter(
+                user=user, recipes=recipe
+            ).exists():
+                return Response(
+                    {'detail': 'Рецепт уже добавлен в избранное'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            FavoritesRecipes.objects.create(user=user, recipes=recipe)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        favorite_list = get_object_or_404(
+            FavoritesRecipes, user=user, recipes=recipe
+        )
+        favorite_list.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
