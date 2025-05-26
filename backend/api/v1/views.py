@@ -1,3 +1,5 @@
+import tempfile
+
 from rest_framework import viewsets, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.urls import reverse
+from django.http import FileResponse
 
 from .serializers import (
     MyUserCreateSerializer,
@@ -24,11 +27,30 @@ from .serializers import (
 from .permissions import IsUserOrAdminOrReadOnly, MePermission, IsUserOrReadOnly
 from .filters import AuthorTagFilter
 from subs.models import Subscriber
-from recipes.models import Tag, Ingredient, Recipe
+from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from favorites.models import FavoritesRecipes
+from shopper.models import ShopRecipes
 
 
 User = get_user_model()
+
+
+def add_or_delete_to_list(request, model, user, recipe, serializer, string):
+    if request.method == 'POST':
+        if model.objects.filter(
+            user=user, recipes=recipe
+        ).exists():
+            return Response(
+                {'detail': f'Рецепт уже добавлен в {string}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        model.objects.create(user=user, recipes=recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    favorite_list = get_object_or_404(
+        model, user=user, recipes=recipe
+    )
+    favorite_list.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MyUserCreateView(
@@ -208,18 +230,80 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, id=self.get_object().id)
         serializer = RecipeShortSerializer(recipe)
         user = request.user
-        if request.method == 'POST':
-            if FavoritesRecipes.objects.filter(
-                user=user, recipes=recipe
-            ).exists():
-                return Response(
-                    {'detail': 'Рецепт уже добавлен в избранное'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            FavoritesRecipes.objects.create(user=user, recipes=recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        favorite_list = get_object_or_404(
-            FavoritesRecipes, user=user, recipes=recipe
+        return add_or_delete_to_list(
+            request=request,
+            model=FavoritesRecipes,
+            user=user,
+            recipe=recipe,
+            serializer=serializer,
+            string='избранное'
         )
-        favorite_list.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=('post', 'delete'),
+        permission_classes=[IsAuthenticated]
+    )
+    def shopping_cart(self, request, id=None):
+        recipe = get_object_or_404(Recipe, id=self.get_object().id)
+        serializer = RecipeShortSerializer(recipe)
+        user = request.user
+        return add_or_delete_to_list(
+            request=request,
+            model=ShopRecipes,
+            user=user,
+            recipe=recipe,
+            serializer=serializer,
+            string='список покупок'
+        )
+
+    @action(
+        detail=False,
+        methods=('get',),
+        permission_classes=[IsAuthenticated]
+    )
+    def download_shopping_cart(self, request):
+        user = request.user
+        shop_list = ShopRecipes.objects.filter(user=user)
+        final_shop_list = {}
+        for recipe in shop_list:
+            recipe_ingredients = RecipeIngredient.objects.filter(
+                recipe=recipe.recipes
+            )
+            for ing in recipe_ingredients:
+                ingredient = ing.ingredient
+                if final_shop_list.get(ingredient.name):
+                    amount, _ = final_shop_list[ingredient.name]
+                    result = amount + ing.amount
+                    final_shop_list[ingredient.name] = (
+                        result,
+                        ingredient.measurement_unit
+                    )
+                else:
+                    final_shop_list[ingredient.name] = (
+                        ing.amount,
+                        ingredient.measurement_unit
+                    )
+        with tempfile.NamedTemporaryFile(
+            mode='w+', suffix='.txt', encoding='utf-8', delete=False
+        ) as temp_file:
+            for name, (amount, unit) in final_shop_list.items():
+                temp_file.write(f"{name}: {amount} {unit}\n")
+            temp_file_path = temp_file.name
+            response = FileResponse(
+                open(temp_file_path, 'rb'),
+                content_type='text/plain',
+                as_attachment=True,
+                filename='shopping_list.txt'
+            )
+        with open(temp_file_path, 'rb') as f:
+            file_content = f.read()
+        response = Response(
+            file_content,
+            content_type='text/plain',
+            status=status.HTTP_200_OK
+        )
+        response[
+            'Content-Disposition'
+        ] = 'attachment; filename="shopping_list.txt"'
+        return response
