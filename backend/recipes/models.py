@@ -103,3 +103,10 @@ class RecipeIngredient(models.Model):
         validators=[MinValueValidator(1)],
         verbose_name='Количество'
     )
+
+    class Meta:
+        verbose_name = 'рецепт и ингредиент'
+        verbose_name_plural = 'Рецепты и ингредиенты'
+
+    def __str__(self):
+        return f'{self.recipe} - {self.ingredient}: {self.amount}'
