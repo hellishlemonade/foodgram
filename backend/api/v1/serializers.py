@@ -11,6 +11,8 @@ from rest_framework.exceptions import ValidationError
 
 from subs.models import Subscriber
 from recipes.models import Tag, Recipe, Ingredient, RecipeIngredient
+from favorites.models import FavoritesRecipes
+from shopper.models import ShopRecipes
 
 
 User = get_user_model()
@@ -33,6 +35,14 @@ class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('avatar',)
+
+
+class RecipeShortSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class MyUserCreateSerializer(UserCreateSerializer):
@@ -72,6 +82,42 @@ class MyUserSerializer(serializers.ModelSerializer):
             if subscriber:
                 return subscriber.subscriptions.filter(id=obj.id).exists()
         return False
+
+
+class UserWithoutAuthorSerializer(MyUserSerializer):
+
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+            'avatar',
+        )
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        limit = request.query_params.get('recipes_limit')
+        if limit:
+            recipes = Recipe.objects.filter(
+                author=obj).order_by('-id')[:int(limit)]
+            serializer = RecipeShortSerializer(recipes, many=True)
+            return serializer.data
+        recipes = Recipe.objects.filter(author=obj)
+        serializer = RecipeShortSerializer(recipes, many=True)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        recipes = Recipe.objects.filter(author=obj).count()
+        return recipes
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -141,6 +187,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     tags = TagField(queryset=Tag.objects.all(), many=True)
     ingredients = IngredientField(queryset=Ingredient.objects.all(), many=True)
     image = Base64ImageField()
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
+    author = MyUserSerializer(read_only=True)
 
     class Meta:
         model = Recipe
@@ -149,6 +198,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             'tags',
             'author',
             'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
             'name',
             'image',
             'text',
@@ -233,10 +284,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         ]
         return recipe
 
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return FavoritesRecipes.objects.filter(
+                user=request.user, recipes=obj).exists()
+        return False
 
-class RecipeShortSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+    def get_is_in_shopping_cart(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return ShopRecipes.objects.filter(
+                user=request.user, recipes=obj).exists()
+        return False
