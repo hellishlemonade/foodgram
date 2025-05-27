@@ -40,18 +40,6 @@ User = get_user_model()
 CONTEXT = {'fields_to_exclude': ['author']}
 
 
-def debug_queries(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        connection.queries_log.clear()
-        response = f(*args, **kwargs)
-        for i, query in enumerate(connection.queries, 1):
-            print(f"{i}. {query['sql']}")
-        print(f"\nЗапросы в {f.__name__}: {len(connection.queries)}")
-        return response
-    return wrapper
-
-
 def add_or_delete_to_list(request, model, user, recipe, serializer, string):
     if request.method == 'POST':
         if model.objects.filter(
@@ -252,7 +240,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         return queryset
 
-    @debug_queries
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
