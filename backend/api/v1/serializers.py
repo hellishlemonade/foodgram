@@ -1,19 +1,18 @@
 import base64
 import uuid
 
-from djoser.serializers import UserCreateSerializer
-from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
+from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from subs.models import Subscriber
-from recipes.models import Tag, Recipe, Ingredient, RecipeIngredient
 from favorites.models import FavoritesRecipes
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from shopper.models import ShopRecipes
-
+from subs.models import Subscriber
 
 User = get_user_model()
 

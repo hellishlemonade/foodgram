@@ -1,39 +1,30 @@
 import tempfile
 
-from rest_framework import viewsets, status, generics
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.settings import api_settings
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from django.urls import reverse
-from django.http import FileResponse
 from django.db.models import Prefetch
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.settings import api_settings
 
-from .serializers import (
-    MyUserCreateSerializer,
-    MyUserSerializer,
-    UserWithoutAuthorSerializer,
-    PasswordChangeSerializer,
-    ImageSerializer,
-    TagSerializer,
-    IngredientSerializer,
-    RecipeSerializer,
-    RecipeShortSerializer
-)
-from .permissions import (
-    IsUserOrAdminOrReadOnly,
-    MePermission,
-    IsUserOrReadOnly
-)
-from .filters import RecipesFilter, CustomPagination, IngredientFilter
-from subs.models import Subscriber
-from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from favorites.models import FavoritesRecipes
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from shopper.models import ShopRecipes
+from subs.models import Subscriber
 
+from .filters import CustomPagination, IngredientFilter, RecipesFilter
+from .permissions import (IsUserOrAdminOrReadOnly, IsUserOrReadOnly,
+                          MePermission)
+from .serializers import (ImageSerializer, IngredientSerializer,
+                          MyUserCreateSerializer, MyUserSerializer,
+                          PasswordChangeSerializer, RecipeSerializer,
+                          RecipeShortSerializer, TagSerializer,
+                          UserWithoutAuthorSerializer)
 
 User = get_user_model()
 CONTEXT = {'fields_to_exclude': ['author']}
