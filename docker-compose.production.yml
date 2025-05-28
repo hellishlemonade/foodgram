@@ -1,0 +1,34 @@
+version: '3'
+
+volumes:
+  pg_data:
+  static:
+  media:
+
+services:
+  db:
+    image: postgres:13
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  backend:
+    image: hobbit19/foodgram_backend
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - static:/backend_static
+      - media:/app/media/
+  frontend:
+    image: hobbit19/foodgram_frontend
+    volumes:
+      - static:/app/result_build/build
+  nginx:
+    image: hobbit19/foodgram_gateway
+    ports:
+      - "8000:80"
+    volumes:
+      - static:/staticfiles/
+      - media:/media/
+    depends_on:
+      - backend
