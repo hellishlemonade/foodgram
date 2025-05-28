@@ -1,8 +1,12 @@
 import django_filters
-
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.filters import SearchFilter
 
 from recipes.models import Recipe, Tag
+
+
+class IngredientFilter(SearchFilter):
+    search_param = 'name'
 
 
 class RecipesFilter(django_filters.FilterSet):

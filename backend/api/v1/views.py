@@ -1,20 +1,15 @@
 import tempfile
-from functools import wraps
 
-from rest_framework import viewsets, status, generics, filters
+from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import (
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly,
-)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.urls import reverse
 from django.http import FileResponse
-from django.db import connection
 from django.db.models import Prefetch
 
 from .serializers import (
@@ -28,8 +23,12 @@ from .serializers import (
     RecipeSerializer,
     RecipeShortSerializer
 )
-from .permissions import IsUserOrAdminOrReadOnly, MePermission, IsUserOrReadOnly
-from .filters import RecipesFilter, CustomPagination
+from .permissions import (
+    IsUserOrAdminOrReadOnly,
+    MePermission,
+    IsUserOrReadOnly
+)
+from .filters import RecipesFilter, CustomPagination, IngredientFilter
 from subs.models import Subscriber
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from favorites.models import FavoritesRecipes
@@ -218,8 +217,8 @@ class IngredientViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
     http_method_names = ('get')
     pagination_class = None
-    filter_backends = (DjangoFilterBackend,)
-    filterset_fields = ('name',)
+    filter_backends = (IngredientFilter,)
+    search_fields = ('^name',)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -235,8 +234,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Recipe.objects.select_related('author').prefetch_related(
             Prefetch('tags', queryset=Tag.objects.only('id', 'name', 'slug')),
-            Prefetch('ingredients', queryset=Ingredient.objects.only('id', 'name', 'measurement_unit')),
-            Prefetch('recipeingredient_set', queryset=RecipeIngredient.objects.select_related('ingredient'))
+            Prefetch('ingredients', queryset=Ingredient.objects.only(
+                'id', 'name', 'measurement_unit')
+            ),
+            Prefetch(
+                'recipeingredient_set',
+                queryset=RecipeIngredient.objects.select_related('ingredient')
+            )
         )
         return queryset
 
