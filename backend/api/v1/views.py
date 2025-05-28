@@ -18,13 +18,22 @@ from shopper.models import ShopRecipes
 from subs.models import Subscriber
 
 from .filters import CustomPagination, IngredientFilter, RecipesFilter
-from .permissions import (IsUserOrAdminOrReadOnly, IsUserOrReadOnly,
-                          MePermission)
-from .serializers import (ImageSerializer, IngredientSerializer,
-                          MyUserCreateSerializer, MyUserSerializer,
-                          PasswordChangeSerializer, RecipeSerializer,
-                          RecipeShortSerializer, TagSerializer,
-                          UserWithoutAuthorSerializer)
+from .permissions import (
+    IsUserOrAdminOrReadOnly,
+    IsUserOrReadOnly,
+    MePermission
+)
+from .serializers import (
+    ImageSerializer,
+    IngredientSerializer,
+    MyUserCreateSerializer,
+    MyUserSerializer,
+    PasswordChangeSerializer,
+    RecipeSerializer,
+    RecipeShortSerializer,
+    TagSerializer,
+    UserWithoutAuthorSerializer
+)
 
 User = get_user_model()
 CONTEXT = {'fields_to_exclude': ['author']}

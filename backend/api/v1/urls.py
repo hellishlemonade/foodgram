@@ -1,8 +1,13 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (IngredientViewSet, MyUserCreateView, MyUserViewSet,
-                    RecipeViewSet, TagViewSet)
+from .views import (
+    IngredientViewSet,
+    MyUserCreateView,
+    MyUserViewSet,
+    RecipeViewSet,
+    TagViewSet
+)
 
 AUTH = 'auth'
 
