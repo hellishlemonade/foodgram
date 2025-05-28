@@ -223,7 +223,6 @@ class IngredientViewSet(viewsets.ModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
 
-    queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     lookup_field = 'id'
     http_method_names = ('get', 'post', 'patch', 'delete')
@@ -241,7 +240,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 'recipeingredient_set',
                 queryset=RecipeIngredient.objects.select_related('ingredient')
             )
-        )
+        ).order_by('-id')
         return queryset
 
     def create(self, request, *args, **kwargs):
