@@ -13,7 +13,7 @@ class IngredientAdmin(admin.ModelAdmin):
 
 
 class RecipeAdmin(admin.ModelAdmin):
-    search_fields = ('name', 'author')
+    search_fields = ('name', 'author__username')
     list_filter = ('tags',)
     list_display = (
         'name',
