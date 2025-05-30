@@ -19,8 +19,6 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'author',
         'text',
-        'ingredients',
-        'tags',
         'is_favorite_count'
     )
 
