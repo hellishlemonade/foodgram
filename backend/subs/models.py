@@ -8,6 +8,13 @@ class Subscriber(models.Model):
         Profile,
         on_delete=models.CASCADE,
         null=True,
-        related_name='subscriber'
+        related_name='subscriber',
+        verbose_name='Пользователь'
     )
-    subscriptions = models.ManyToManyField(Profile, related_name='subscribers')
+    subscriptions = models.ManyToManyField(
+        Profile, related_name='subscribers', verbose_name='Подписки'
+    )
+
+    class Meta:
+        verbose_name = 'подписка'
+        verbose_name_plural = 'Подписки'
