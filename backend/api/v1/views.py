@@ -330,7 +330,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             mode='w+', suffix='.txt', encoding='utf-8', delete=False
         ) as temp_file:
             for name, (amount, unit) in final_shop_list.items():
-                temp_file.write(f"{name}: {amount} {unit}\n")
+                temp_file.write(f"{name}: {amount} {unit}, ")
             temp_file_path = temp_file.name
             response = FileResponse(
                 open(temp_file_path, 'rb'),
