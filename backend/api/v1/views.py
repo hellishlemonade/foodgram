@@ -67,7 +67,7 @@ class MyUserCreateView(
 ):
     queryset = User.objects.all()
     serializer_class = MyUserCreateSerializer
-    permission_classes = [IsUserOrAdminOrReadOnly,]
+    permission_classes = [IsUserOrAdminOrReadOnly, ]
 
     def list(self, request, *args, **kwargs):
         queryset = User.objects.all()
@@ -87,9 +87,9 @@ class MyUserViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
     serializer_class = MyUserSerializer
     http_method_names = ('get', 'post', 'put', 'delete')
-    permission_classes = [IsUserOrAdminOrReadOnly,]
+    permission_classes = [IsUserOrAdminOrReadOnly, ]
 
-    @action(detail=False, methods=['get'], permission_classes=[MePermission,])
+    @action(detail=False, methods=['get'], permission_classes=[MePermission, ])
     def me(self, request):
         user = request.user
         serializer = MyUserSerializer(user)
@@ -98,7 +98,7 @@ class MyUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['put', 'delete'],
-        permission_classes=[IsAuthenticated,],
+        permission_classes=[IsAuthenticated, ],
         url_path='me/avatar'
     )
     def avatar(self, request):
@@ -130,7 +130,7 @@ class MyUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['get'],
-        permission_classes=[IsAuthenticated,],
+        permission_classes=[IsAuthenticated, ],
         pagination_class=CustomPagination
     )
     def subscriptions(self, request):
@@ -226,7 +226,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
     lookup_field = 'id'
     http_method_names = ('get', 'post', 'patch', 'delete')
-    permission_classes = [IsUserOrReadOnly,]
+    permission_classes = [IsUserOrReadOnly, ]
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
 
