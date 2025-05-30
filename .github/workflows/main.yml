@@ -130,7 +130,6 @@ jobs:
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         source: "docker-compose.production.yml"
         target: "food"
-        rm: true
         overwrite: true
     - name: Executing remote ssh commands to deploy
       uses: appleboy/ssh-action@master
