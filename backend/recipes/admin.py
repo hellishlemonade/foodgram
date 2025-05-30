@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Ingredient, Recipe, RecipeIngredient, Tag
+from .models import Ingredient, Recipe, RecipeIngredient, Tag, RecipeTag
 
 
 class TagAdmin(admin.ModelAdmin):
@@ -12,8 +12,23 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+class RecipeIngredientInLine(admin.StackedInline):
+    model = RecipeIngredient
+    extra = 0
+
+
+class RecipeTagInLine(admin.StackedInline):
+    model = RecipeTag
+    extra = 0
+
+
 class RecipeAdmin(admin.ModelAdmin):
+    inlines = (
+        RecipeIngredientInLine,
+        RecipeTagInLine
+    )
     search_fields = ('name', 'author__username')
+    filter_horizontal = ('tags', 'ingredients')
     list_filter = ('tags',)
     list_display = (
         'name',
@@ -23,10 +38,12 @@ class RecipeAdmin(admin.ModelAdmin):
     )
 
     def is_favorite_count(self, obj):
-        return obj.favoritesrecipes_set.count()
+        return obj.favorites.count() if hasattr(obj, 'favorites') else 0
+    is_favorite_count.short_description = 'В избранном'
 
 
 admin.site.register(Tag, TagAdmin)
-admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Ingredient, IngredientAdmin)
+admin.site.register(RecipeTag)
 admin.site.register(RecipeIngredient)
+admin.site.register(Recipe, RecipeAdmin)
