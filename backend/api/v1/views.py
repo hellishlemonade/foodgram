@@ -228,7 +228,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
     permission_classes = [IsUserOrReadOnly, ]
     filter_backends = (DjangoFilterBackend,)
-    pagination_class = LimitOffsetPagination
+    pagination_class = CustomPagination
     filterset_class = RecipesFilter
 
     def get_queryset(self):

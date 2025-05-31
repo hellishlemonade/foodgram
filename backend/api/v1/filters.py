@@ -4,6 +4,8 @@ from rest_framework.pagination import PageNumberPagination
 
 from recipes.models import Recipe, Tag
 
+PAGE_SIZE = 6
+
 
 class IngredientFilter(SearchFilter):
     search_param = 'name'
@@ -48,5 +50,5 @@ class RecipesFilter(django_filters.FilterSet):
 
 
 class CustomPagination(PageNumberPagination):
-    max_page_size = 100
+    page_size = PAGE_SIZE
     page_size_query_param = 'limit'
