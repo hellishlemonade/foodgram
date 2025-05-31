@@ -8,9 +8,9 @@ from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.settings import api_settings
 
 from favorites.models import FavoritesRecipes
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
@@ -71,7 +71,7 @@ class MyUserCreateView(
 
     def list(self, request, *args, **kwargs):
         queryset = User.objects.all()
-        paginator = api_settings.DEFAULT_PAGINATION_CLASS()
+        paginator = LimitOffsetPagination()
         page = paginator.paginate_queryset(queryset, request)
         serializer = MyUserSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -228,6 +228,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
     permission_classes = [IsUserOrReadOnly, ]
     filter_backends = (DjangoFilterBackend,)
+    pagination_class = LimitOffsetPagination
     filterset_class = RecipesFilter
 
     def get_queryset(self):
