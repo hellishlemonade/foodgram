@@ -15,11 +15,13 @@ class IngredientAdmin(admin.ModelAdmin):
 class RecipeIngredientInLine(admin.StackedInline):
     model = RecipeIngredient
     extra = 0
+    min_num = 1
 
 
 class RecipeTagInLine(admin.StackedInline):
     model = RecipeTag
     extra = 0
+    min_num = 1
 
 
 class RecipeAdmin(admin.ModelAdmin):
