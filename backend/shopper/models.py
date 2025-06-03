@@ -7,8 +7,16 @@ User = get_user_model()
 
 
 class ShopRecipes(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    recipes = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь'
+    )
+    recipes = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт'
+    )
 
     class Meta:
         verbose_name = 'список покупок'
