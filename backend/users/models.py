@@ -2,8 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 
-MAX_LENGTH_USERNAME = 150
-MAX_LENGTH_NAME = 150
+from backend.constants import MAX_LENGTH_NAME
 
 
 class Profile(AbstractUser):
@@ -14,14 +13,7 @@ class Profile(AbstractUser):
     Добавлено поле для фотографии профиля.
     """
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
-
-    username = models.CharField(
-        'Никнейм',
-        max_length=MAX_LENGTH_USERNAME,
-        unique=True,
-        validators=[UnicodeUsernameValidator()]
-    )
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     email = models.EmailField(
         'Email',
