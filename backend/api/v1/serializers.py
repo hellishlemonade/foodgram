@@ -13,6 +13,7 @@ from favorites.models import FavoritesRecipes
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from shopper.models import ShopRecipes
 from subs.models import Subscriber
+from backend.constants import PAGE_SIZE
 
 User = get_user_model()
 
@@ -68,35 +69,76 @@ class ProfileSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, obj):
-        return _get_user_relation_status(obj, 'subscribers')
+        return _get_user_relation_status(self, obj, 'subscribers')
 
 
 class UserWithoutAuthorSerializer(ProfileSerializer):
-
+    email = serializers.ReadOnlyField(source='subscriptions.email')
+    id = serializers.ReadOnlyField(source='subscriptions.id')
+    username = serializers.ReadOnlyField(source='subscriptions.username')
+    first_name = serializers.ReadOnlyField(source='subscriptions.first_name')
+    last_name = serializers.ReadOnlyField(source='subscriptions.last_name')
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
+    avatar = Base64ImageField(source='subscriptions.avatar')
 
     class Meta:
-        model = User
+        model = Subscriber
         fields = ProfileSerializer.Meta.fields + ('recipes', 'recipes_count')
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        print(obj.subscriptions)
+        return Subscriber.objects.filter(
+            subscriptions=obj.subscriptions, user=user
+        ).exists()
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')
-        if limit:
-            try:
-                recipes = Recipe.objects.filter(
-                    author=obj).order_by('-id')[:int(limit)]
-            except Exception:
-                pass
-            serializer = RecipeShortSerializer(recipes, many=True)
-            return serializer.data
-        recipes = Recipe.objects.filter(author=obj)
-        serializer = RecipeShortSerializer(recipes, many=True)
-        return serializer.data
+        limit = request.GET.get('recipes_limit', PAGE_SIZE)
+        try:
+            limit = int(limit)
+        except ValueError:
+            pass
+        return RecipeShortSerializer(
+            Recipe.objects.filter(author=obj.subscriptions)[:limit],
+            many=True,
+            context={'request': request},
+        ).data
 
     def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj).count()
+        return Recipe.objects.filter(author=obj.subscriptions).count()
+
+
+class SubscriberSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Subscriber
+        fields = ('user', 'subscriptions')
+        read_only_fields = ['user', 'subscriptions']
+
+    def validate(self, data):
+        request = self.context.get('request')
+        subscription_id = (
+            self.context.get('request').parser_context.get('kwargs').get('id')
+        )
+        subscription = get_object_or_404(User, id=subscription_id)
+        if request.user == subscription:
+            raise serializers.ValidationError(
+                'Вы не можете подписаться на себя'
+            )
+        if Subscriber.objects.filter(
+            user=request.user, subscriptions=subscription
+        ).exists():
+            raise serializers.ValidationError(
+                'Вы уже подписаны на данного пользователя'
+            )
+        return data
+
+    def to_representation(self, instance):
+        return UserWithoutAuthorSerializer(
+            instance.subscriptions, context=self.context
+        ).data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -133,7 +175,7 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 
 class WriteRecipeIngredientSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField()
+    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
         model = RecipeIngredient
@@ -166,10 +208,10 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_is_favorited(self, obj):
-        return _get_user_relation_status(obj, 'favorites')
+        return _get_user_relation_status(self, obj, 'favorites')
 
     def get_is_in_shopping_cart(self, obj):
-        return _get_user_relation_status(obj, 'in_shopping_cart')
+        return _get_user_relation_status(self, obj, 'in_shopping_cart')
 
 
 class CreateRecipeSerializer(serializers.ModelSerializer):
@@ -252,4 +294,9 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
-        return ReadRecipeSerializer(instance).data
+        return ReadRecipeSerializer(
+            instance, context={'request': self.context.get('request')}
+        ).data
+
+
+

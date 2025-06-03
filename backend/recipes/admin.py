@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Ingredient, Recipe, RecipeIngredient, RecipeTag, Tag
+from .models import Ingredient, Recipe, RecipeIngredient, Tag
 
 
 class TagAdmin(admin.ModelAdmin):
@@ -18,17 +18,8 @@ class RecipeIngredientInLine(admin.StackedInline):
     min_num = 1
 
 
-class RecipeTagInLine(admin.StackedInline):
-    model = RecipeTag
-    extra = 0
-    min_num = 1
-
-
 class RecipeAdmin(admin.ModelAdmin):
-    inlines = (
-        RecipeIngredientInLine,
-        RecipeTagInLine
-    )
+    inlines = (RecipeIngredientInLine,)
     search_fields = ('name', 'author__username')
     filter_horizontal = ('tags', 'ingredients')
     list_filter = ('tags',)
@@ -46,6 +37,5 @@ class RecipeAdmin(admin.ModelAdmin):
 
 admin.site.register(Tag, TagAdmin)
 admin.site.register(Ingredient, IngredientAdmin)
-admin.site.register(RecipeTag)
 admin.site.register(RecipeIngredient)
 admin.site.register(Recipe, RecipeAdmin)
