@@ -15,7 +15,8 @@ class ShopRecipes(models.Model):
     recipes = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        verbose_name='Рецепт'
+        verbose_name='Рецепт',
+        related_name='in_shopping_cart'
     )
 
     class Meta:

@@ -7,7 +7,6 @@ class Subscriber(models.Model):
     user = models.ForeignKey(
         Profile,
         on_delete=models.CASCADE,
-        null=True,
         related_name='subscriber',
         verbose_name='Пользователь'
     )
