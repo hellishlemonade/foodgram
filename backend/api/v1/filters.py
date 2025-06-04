@@ -1,6 +1,5 @@
 import django_filters
 from rest_framework.filters import SearchFilter
-from rest_framework.pagination import PageNumberPagination
 
 from recipes.models import Recipe, Tag
 
