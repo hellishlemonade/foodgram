@@ -1,8 +1,21 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.urls import reverse
+import secrets
 
-from backend.constants import TAG_NAME_MAX_LENGTH, TAG_SLUG_MAX_LENGTH, INGREDIENT_NAME_MAX_LENGTH, MEASUREMENT_UNIT_MAX_LENGTH, RECIPE_NAME_MAX_LENGTH, COOKING_TIME_MIN, COOKING_TIME_MAX, AMOUNT_MIN, AMOUNT_MAX
+from backend.constants import (
+    AMOUNT_MAX,
+    AMOUNT_MIN,
+    COOKING_TIME_MAX,
+    COOKING_TIME_MIN,
+    INGREDIENT_NAME_MAX_LENGTH,
+    MEASUREMENT_UNIT_MAX_LENGTH,
+    RECIPE_NAME_MAX_LENGTH,
+    SHORT_LINK_MAX_SIZE,
+    TAG_NAME_MAX_LENGTH,
+    TAG_SLUG_MAX_LENGTH
+)
 
 User = get_user_model()
 
@@ -80,6 +93,9 @@ class Recipe(models.Model):
             )
         )
     )
+    short_url = models.CharField(
+        max_length=SHORT_LINK_MAX_SIZE, unique=True, null=True
+    )
 
     class Meta:
         verbose_name = 'рецепт'
@@ -88,6 +104,27 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
+
+    def generate_short_url(self):
+        alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+        while True:
+            short_url = ''.join(secrets.choice(alphabet) for _ in range(6))
+            if not Recipe.objects.filter(short_url=short_url).exists():
+                return short_url
+
+    def save(self, *args, **kwargs):
+        if not self.short_url:
+            self.short_url = self.generate_short_url()
+        super().save(*args, **kwargs)
+
+    def get_short_url(self, request):
+        path = reverse(
+            'recipe-short-link', kwargs={'short_link': self.short_url}
+        )
+        return request.build_absolute_uri(path)
+
+    def get_absolute_url(self):
+        return reverse('recipes-detail', kwargs={'id': self.id})
 
 
 class RecipeIngredient(models.Model):

@@ -4,8 +4,6 @@ from rest_framework.pagination import PageNumberPagination
 
 from recipes.models import Recipe, Tag
 
-PAGE_SIZE = 6
-
 
 class IngredientFilter(SearchFilter):
     search_param = 'name'
@@ -17,38 +15,27 @@ class RecipesFilter(django_filters.FilterSet):
         queryset=Tag.objects.all(),
         to_field_name='slug'
     )
-    is_favorited = django_filters.NumberFilter(
-        method='filter_is_favorited',
-        min_value=0,
-        max_value=1
-    )
+    is_favorited = django_filters.NumberFilter(method='filter_is_favorited')
     is_in_shopping_cart = django_filters.NumberFilter(
-        method='filter_is_in_shopping_cart',
-        min_value=0,
-        max_value=1
+        method='filter_is_in_shopping_cart'
     )
 
     class Meta:
         model = Recipe
-        fields = ['author', 'tags']
+        fields = ('author', 'tags')
 
     def filter_is_favorited(self, queryset, name, value):
         user = self.request.user
         if not user.is_authenticated:
             return queryset.none() if value else queryset
-        if int(value) == 1:
-            return queryset.filter(favoritesrecipes__user=user)
-        return queryset.exclude(favoritesrecipes__user=user)
+        if value == 1:
+            return queryset.filter(favorites__user=user)
+        return queryset.exclude(favorites__user=user)
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if not user.is_authenticated:
             return queryset.none() if value else queryset
         if int(value) == 1:
-            return queryset.filter(shoprecipes__user=user)
-        return queryset.exclude(shoprecipes__user=user)
-
-
-class CustomPagination(PageNumberPagination):
-    page_size = PAGE_SIZE
-    page_size_query_param = 'limit'
+            return queryset.filter(in_shopping_cart__user=user)
+        return queryset.exclude(in_shopping_cart__user=user)

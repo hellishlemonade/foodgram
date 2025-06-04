@@ -2,18 +2,15 @@ import base64
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.core.files.base import ContentFile
-from django.shortcuts import get_object_or_404
-from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from backend.constants import PAGE_SIZE
 from favorites.models import FavoritesRecipes
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from shopper.models import ShopRecipes
 from subs.models import Subscriber
-from backend.constants import PAGE_SIZE
 
 User = get_user_model()
 
@@ -81,6 +78,7 @@ class UserWithoutAuthorSerializer(ProfileSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
     avatar = Base64ImageField(source='subscriptions.avatar')
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscriber
@@ -88,7 +86,6 @@ class UserWithoutAuthorSerializer(ProfileSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
-        print(obj.subscriptions)
         return Subscriber.objects.filter(
             subscriptions=obj.subscriptions, user=user
         ).exists()
@@ -115,20 +112,19 @@ class SubscriberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscriber
         fields = ('user', 'subscriptions')
-        read_only_fields = ['user', 'subscriptions']
+        read_only_fields = ('user', 'subscriptions')
 
     def validate(self, data):
         request = self.context.get('request')
         subscription_id = (
             self.context.get('request').parser_context.get('kwargs').get('id')
         )
-        subscription = get_object_or_404(User, id=subscription_id)
-        if request.user == subscription:
+        if request.user.id == int(subscription_id):
             raise serializers.ValidationError(
                 'Вы не можете подписаться на себя'
             )
         if Subscriber.objects.filter(
-            user=request.user, subscriptions=subscription
+            user_id=request.user.id, subscriptions_id=subscription_id
         ).exists():
             raise serializers.ValidationError(
                 'Вы уже подписаны на данного пользователя'
@@ -136,8 +132,9 @@ class SubscriberSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
+        print(instance.subscriptions)
         return UserWithoutAuthorSerializer(
-            instance.subscriptions, context=self.context
+            instance, context=self.context
         ).data
 
 
@@ -265,12 +262,13 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def create_tags_and_ingredients(self, tags, ingredients, recipe):
         recipe.tags.set(tags)
+        print(ingredients)
         result_ingredients = []
         for ing in ingredients:
             result_ingredients.append(
                 RecipeIngredient(
                     recipe_id=recipe.id,
-                    ingredient_id=ing['id'],
+                    ingredient_id=ing['id'].id,
                     amount=ing['amount']
                 )
             )
@@ -280,7 +278,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
-        recipe.tags.set(tags)
         self.create_tags_and_ingredients(tags, ingredients, recipe)
         return recipe
 
@@ -288,7 +285,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
         instance.tags.clear()
-        instance.tags.set(tags)
         instance.ingredients.clear()
         self.create_tags_and_ingredients(tags, ingredients, instance)
         return super().update(instance, validated_data)
@@ -299,4 +295,32 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         ).data
 
 
+class FavoritesRecipeSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = FavoritesRecipes
+        fields = ('user', 'recipes')
+        read_only_fields = ('user', 'recipes')
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        recipe_id = (
+            self.context.get('request').parser_context.get('kwargs').get('id')
+        )
+        if self.Meta.model.objects.filter(
+                user_id=request.user.id, recipes_id=recipe_id).exists():
+            raise serializers.ValidationError(
+                'Рецепт уже добавлен'
+            )
+        return attrs
+
+    def to_representation(self, instance):
+        return RecipeShortSerializer(
+            instance.recipes, context=self.context
+        ).data
+
+
+class ShopperRecipeSerializer(FavoritesRecipeSerializer):
+
+    class Meta(FavoritesRecipeSerializer.Meta):
+        model = ShopRecipes
