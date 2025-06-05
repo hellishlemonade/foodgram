@@ -86,8 +86,10 @@ class ProfileUserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         user = request.user
-        subscriptions = user.subscriber.all().order_by('-id')
-        page = self.paginate_queryset(subscriptions)
+        subscriptions = user.subscriber.all(
+        ).order_by('-id').values('subscriptions__username')
+        subs = User.objects.filter(username__in=subscriptions)
+        page = self.paginate_queryset(subs)
         serializer = UserWithoutAuthorSerializer(
             page,
             many=True,
@@ -115,7 +117,7 @@ class ProfileUserViewSet(UserViewSet):
         count_delete, _ = Subscriber.objects.filter(
             user=request.user, subscriptions=self.get_object()
         ).delete()
-        if count_delete < 1:
+        if not count_delete:
             return Response(
                 {'detail': 'Not subscribed'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -172,7 +174,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def delete_from(model, request, self):
         count_delete, _ = model.objects.filter(
             user=request.user, recipes=self.get_object()).delete()
-        if count_delete < 1:
+        if not count_delete:
             return Response(
                 {'detail': 'Not subscribed'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -208,7 +210,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shortlink(self, request, id=None):
         recipe = get_object_or_404(Recipe, id=id)
         url = recipe.get_short_url(request)
-        print(recipe.short_url)
         return Response({'short-link': url})
 
     @action(

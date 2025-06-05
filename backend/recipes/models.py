@@ -1,8 +1,10 @@
+import secrets
+import string
+
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
-import secrets
 
 from backend.constants import (
     AMOUNT_MAX,
@@ -32,9 +34,10 @@ class Tag(models.Model):
     class Meta:
         verbose_name = 'тег'
         verbose_name_plural = 'Теги'
+        ordering = ('name',)
 
     def __str__(self):
-        return self.slug
+        return f'Тег: {self.name} (slug: {self.slug})'
 
 
 class Ingredient(models.Model):
@@ -48,7 +51,7 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = 'игредиент'
         verbose_name_plural = 'Ингредиенты'
-        ordering = ('-id',)
+        ordering = ('name',)
         constraints = [
             models.UniqueConstraint(
                 fields=('name', 'measurement_unit'),
@@ -57,29 +60,29 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.name} - {self.measurement_unit}'
+        return f'Ингредиент: {self.name} ({self.measurement_unit})'
 
 
 class Recipe(models.Model):
 
     author = models.ForeignKey(
         User,
-        blank=False,
         on_delete=models.CASCADE,
         related_name='recipe',
         verbose_name='Автор'
     )
     name = models.CharField('Название', max_length=RECIPE_NAME_MAX_LENGTH)
     image = models.ImageField(
-        'Изображение', blank=False, upload_to='recipes/', null=True
+        'Изображение', upload_to='recipes/', null=True
     )
     text = models.TextField('Описание')
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredient',
         related_name='ingredients',
+        verbose_name='Ингредиенты'
     )
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
         validators=(
@@ -103,10 +106,10 @@ class Recipe(models.Model):
         ordering = ('-id',)
 
     def __str__(self):
-        return self.name
+        return f'Рецепт: {self.name}, Автор: {self.author}'
 
     def generate_short_url(self):
-        alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+        alphabet = string.ascii_lowercase + string.digits
         while True:
             short_url = ''.join(secrets.choice(alphabet) for _ in range(6))
             if not Recipe.objects.filter(short_url=short_url).exists():
@@ -142,7 +145,6 @@ class RecipeIngredient(models.Model):
         related_name='recipe_links'
     )
     amount = models.PositiveSmallIntegerField(
-        blank=False,
         validators=(
             MinValueValidator(
                 AMOUNT_MIN,
@@ -159,7 +161,7 @@ class RecipeIngredient(models.Model):
     class Meta:
         verbose_name = 'рецепт и ингредиент'
         verbose_name_plural = 'Рецепты и ингредиенты'
-        ordering = ('-id',)
+        ordering = ('recipe',)
         constraints = [
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
