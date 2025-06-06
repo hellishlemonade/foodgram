@@ -1,8 +1,6 @@
-import tempfile
-
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Sum, Count
-from django.http import HttpResponseRedirect, HttpResponse
+from django.db.models import Prefetch, Sum
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
