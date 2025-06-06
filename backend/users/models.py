@@ -40,5 +40,13 @@ class Profile(AbstractUser):
         null=True
     )
 
+    class Meta:
+        verbose_name = 'пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('username',)
+
     def __str__(self):
-        return self.email
+        return (
+            f'Никнейм: {self.username}, email: {self.email}, '
+            f'имя: {self.first_name}, фамилия: {self.last_name}'
+        )

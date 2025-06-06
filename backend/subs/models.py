@@ -20,7 +20,7 @@ class Subscriber(models.Model):
     class Meta:
         verbose_name = 'подписка'
         verbose_name_plural = 'Подписки'
-        ordering = ('-id',)
+        ordering = ('user',)
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'subscriptions'],

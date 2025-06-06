@@ -1,8 +1,8 @@
 import tempfile
 
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Sum
-from django.http import HttpResponseRedirect
+from django.db.models import Prefetch, Sum, Count
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
@@ -244,29 +244,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         ingredients = (
-            RecipeIngredient.objects.filter(
-                recipe__in_shopping_cart__user=request.user)
-            .values('ingredient__name', 'ingredient__measurement_unit')
-            .annotate(sum=Sum('amount'))
+            Ingredient.objects.filter(
+                ingredients__in_shopping_cart__user=request.user)
+            .values('name', 'measurement_unit')
+            .annotate(sum=Sum('recipe_links__amount'))
         )
         shopping_list_as_str = '\n'.join(
-            f'{ingredient["ingredient__name"]} - {ingredient["sum"]} '
-            f'({ingredient["ingredient__measurement_unit"]})'
+            f'{ingredient["name"]} - {ingredient["sum"]} '
+            f'({ingredient["measurement_unit"]})'
             for ingredient in ingredients
         )
-        with tempfile.NamedTemporaryFile(
-            mode='w+', suffix='.txt', encoding='utf-8', delete=False
-        ) as temp_file:
-            temp_file.write(shopping_list_as_str)
-            temp_file_path = temp_file.name
-        with open(temp_file_path, 'rb') as f:
-            file_content = f.read()
-            response = Response(
-                file_content,
-                content_type='text/plain',
-                status=status.HTTP_200_OK
-            )
-            response[
-                'Content-Disposition'
-            ] = 'attachment; filename="shopping_list.txt"'
-            return response
+        return HttpResponse(shopping_list_as_str, content_type='text/plain')

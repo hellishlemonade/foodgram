@@ -22,7 +22,7 @@ class ShopRecipes(models.Model):
     class Meta:
         verbose_name = 'список покупок'
         verbose_name_plural = 'Списки покупок'
-        ordering = ('id',)
+        ordering = ('user',)
 
     def __str__(self):
         return f'{self.user} - {self.recipes.name}'
