@@ -8,6 +8,8 @@ from .views import (
     TagViewSet
 )
 
+from api.v1.views import recipe_short_link
+
 AUTH = 'auth'
 
 router = DefaultRouter()
@@ -19,4 +21,5 @@ router.register('recipes', RecipeViewSet, basename='recipes')
 urlpatterns = [
     path(f'{AUTH}/', include('djoser.urls.authtoken')),
     path('', include(router.urls)),
+    path('s/<str:short_link>/', recipe_short_link, name='recipe-short-link'),
 ]

@@ -145,7 +145,7 @@ class IngredientViewSet(viewsets.ModelViewSet):
 
 def recipe_short_link(request, short_link):
     recipe = get_object_or_404(Recipe, short_url=short_link)
-    return HttpResponseRedirect(redirect_to=recipe.get_absolute_url())
+    return HttpResponseRedirect(redirect_to=recipe.get_absolute_url(request))
 
 
 class RecipeViewSet(viewsets.ModelViewSet):

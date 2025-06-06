@@ -127,8 +127,8 @@ class Recipe(models.Model):
         )
         return request.build_absolute_uri(path)
 
-    def get_absolute_url(self):
-        return reverse('recipes-detail', kwargs={'id': self.id})
+    def get_absolute_url(self, request):
+        return request.build_absolute_uri(f'/recipes/{self.id}/')
 
 
 class RecipeIngredient(models.Model):
